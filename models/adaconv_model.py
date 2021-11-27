@@ -35,9 +35,9 @@ class AdaConvModel(BaseModel):
         
         style_size, style_channels, kernel_size = opt.style_size, opt.style_channels, opt.kernel_size
         style_in_shape = (
-            self.net_encoder.out_channels, 
-            style_size // self.net_encoder.scale_factor, 
-            style_size // self.net_encoder.scale_factor
+            encoder.out_channels, 
+            style_size // encoder.scale_factor, 
+            style_size // encoder.scale_factor
         )
         style_out_shape = (style_channels, kernel_size, kernel_size)
         style_encoder = GlobalStyleEncoder(
@@ -49,7 +49,7 @@ class AdaConvModel(BaseModel):
             networks.init_net, 
             init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids
         )
-        self.net_encoder = init_network(encoder)
+        self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
         self.net_decoder = init_network(decoder)
         self.net_style_encoder = init_network(style_encoder)
 

@@ -34,7 +34,7 @@ class AdaInModel(BaseModel):
             networks.init_net, 
             init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids
         )
-        self.net_encoder = init_network(encoder)
+        self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
         self.net_decoder = init_network(decoder)
         self.net_adain = init_network(adain)
 
