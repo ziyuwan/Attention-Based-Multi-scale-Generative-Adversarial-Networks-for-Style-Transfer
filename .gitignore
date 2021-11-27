@@ -1,0 +1,4 @@
+checkpoints/
+results
+# for models of vgg.
+*.pth 
