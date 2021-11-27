@@ -1,0 +1,17 @@
+python train.py \
+--content_path  ~/workspace/ada-conv-pytorch/data/MSCOCO/train2017/ \
+--style_path ~/workspace/ada-conv-pytorch/data/WikiArt/train/ \
+--name AdaConv_debug \
+--model adaconv \
+--dataset_mode unaligned \
+--no_dropout \
+--load_size 512 \
+--crop_size 256 \
+--gpu_ids 1 \
+--batch_size 8 \
+--n_epochs 2 \
+--n_epochs_decay 3 \
+--display_freq 100 \
+--display_port 8099 \
+--display_env AdaConv \
+--lr 0.0001

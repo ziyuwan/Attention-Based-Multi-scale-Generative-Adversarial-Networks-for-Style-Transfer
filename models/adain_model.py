@@ -7,6 +7,8 @@ from argparse import ArgumentParser
 from . import loss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import LambdaLR
+import functools
+
 
 class AdaInModel(BaseModel):
     @staticmethod
@@ -25,9 +27,17 @@ class AdaInModel(BaseModel):
 
     def __init__(self, opt):
         super().__init__(opt)
-        self.net_encoder = networks.VGGEncoder().to(self.device)
-        self.net_decoder = networks.Decoder().to(self.device)
-        self.net_adain = AdaInstanceNorm2d().to(self.device)
+        encoder = networks.VGGEncoder()
+        decoder = networks.Decoder()
+        adain = AdaInstanceNorm2d()
+        init_network = functools.partial(
+            networks.init_net, 
+            init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids
+        )
+        self.net_encoder = init_network(encoder)
+        self.net_decoder = init_network(decoder)
+        self.net_adain = init_network(adain)
+
         self.alpha = opt.alpha
 
         self.visual_names = ['c', 'cs', 's']
@@ -49,7 +59,8 @@ class AdaInModel(BaseModel):
             self.lr = opt.lr
 
             self.optimizer_g = Adam(
-                list(self.net_decoder.parameters()) + list(self.net_adain.parameters()),
+                list(self.net_decoder.parameters()) \
+                    + list(self.net_adain.parameters()),
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
             self.loss_content = torch.tensor(0., device=self.device)
@@ -62,7 +73,6 @@ class AdaInModel(BaseModel):
 
 
     def forward(self):
-        self.net_encoder.freeze()
         self.content_embeddings, self.style_embeddings = self._encode(self.c, self.s)
         self.cs = self.net_decoder(self.content_embeddings[-1])
 
