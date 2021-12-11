@@ -1,13 +1,15 @@
-import os
-import tempfile
-import shutil
-from pathlib import Path
 import argparse
-from PIL import Image
+import os
+import shutil
+import tempfile
+from pathlib import Path
+
 import cog
-from options.test_options import TestOptions
+from PIL import Image
+
 from data import create_dataset
 from models import create_model
+from options.test_options import TestOptions
 from util import util
 
 

@@ -1,14 +1,16 @@
 import functools
-from .base_model import BaseModel
-import torch
-from torch import nn
-import torch.nn.functional as F
-from . import networks
 from argparse import ArgumentParser
-from . import loss
-from torch.optim import Adam
-from torch.optim.lr_scheduler import LambdaLR
 from math import ceil, floor
+
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import Adam
+
+from . import loss
+from . import networks
+from .base_model import BaseModel
+
 
 # TODO(ziyu): split modules into several files
 
@@ -18,7 +20,8 @@ class AdaConvModel(BaseModel):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         # AdaIn config
         parser.add_argument('--style_size', type=int, default=256, help='Size of the input style image.')
-        parser.add_argument('--style_channels', type=int, default=512, help='Number of channels for the style descriptor.')
+        parser.add_argument('--style_channels', type=int, default=512,
+                            help='Number of channels for the style descriptor.')
         parser.add_argument('--kernel_size', type=int, default=3, help='The size of the predicted kernels.')
         if isTrain:
             # Losses
@@ -32,11 +35,11 @@ class AdaConvModel(BaseModel):
     def __init__(self, opt):
         super().__init__(opt)
         encoder = networks.VGGEncoder()
-        
+
         style_size, style_channels, kernel_size = opt.style_size, opt.style_channels, opt.kernel_size
         style_in_shape = (
-            encoder.out_channels, 
-            style_size // encoder.scale_factor, 
+            encoder.out_channels,
+            style_size // encoder.scale_factor,
             style_size // encoder.scale_factor
         )
         style_out_shape = (style_channels, kernel_size, kernel_size)
@@ -44,9 +47,9 @@ class AdaConvModel(BaseModel):
             in_shape=style_in_shape, out_shape=style_out_shape)
         decoder = AdaConvDecoder(
             style_channels=style_channels, kernel_size=kernel_size)
-        
+
         init_network = functools.partial(
-            networks.init_net, 
+            networks.init_net,
             init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids
         )
         self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
@@ -73,12 +76,12 @@ class AdaConvModel(BaseModel):
 
             self.optimizer_g = Adam(
                 list(self.net_decoder.parameters()) \
-                    + list(self.net_style_encoder.parameters()),
+                + list(self.net_style_encoder.parameters()),
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
             self.loss_content = torch.tensor(0., device=self.device)
             self.loss_style = torch.tensor(0., device=self.device)
-    
+
     def _encode(self, content, style):
         content_embeddings = self.net_encoder(content)
         style_embeddings = self.net_encoder(style)
@@ -88,11 +91,7 @@ class AdaConvModel(BaseModel):
         style_embedding = self.net_style_encoder(style_embedding)
         output = self.net_decoder(content_embedding, style_embedding)
         return output
-    
-    def set_input(self, input_dict):
-        self.c = input_dict['c'].to(self.device)
-        self.s = input_dict['s'].to(self.device)
-        self.image_paths = input_dict['name']
+
 
     def forward(self):
         self.content_embeddings, self.style_embeddings = self._encode(self.c, self.s)
@@ -102,27 +101,21 @@ class AdaConvModel(BaseModel):
 
     def compute_losses(self):
         self.loss_content = self.content_loss_weight \
-            * self.content_loss_cri(self.content_embeddings[-1], 
-                                    self.output_embeddings[-1])
-        
+                            * self.content_loss_cri(self.content_embeddings[-1],
+                                                    self.output_embeddings[-1])
+
         self.loss_style = 0
-        for style_feats, output_feats in zip(self.style_embeddings, 
-                                             self.output_embeddings):
+        for style_feats, output_feats in zip(self.style_embeddings, self.output_embeddings):
             self.loss_style += self.style_loss_cri(style_feats, output_feats)
-        
+
         self.loss_style *= self.style_loss_weight
-    
+
     def optimize_parameters(self):
-        self.forward()
         self.optimizer_g.zero_grad()
         self.compute_losses()
         loss = self.loss_content + self.loss_style
         loss.backward()
         self.optimizer_g.step()
-    
-    
-
-
 
 
 class AdaConv2d(nn.Module):
@@ -187,6 +180,7 @@ class AdaConv2d(nn.Module):
         x = F.conv2d(x, w_spatial, groups=self.n_groups)
         x = F.conv2d(x, w_pointwise, groups=self.n_groups, bias=bias)
         return x
+
 
 class AdaConvDecoder(nn.Module):
     def __init__(self, style_channels, kernel_size):
@@ -314,9 +308,6 @@ class KernelPredictor(nn.Module):
                                           self.out_channels,
                                           self.out_channels // self.n_groups,
                                           1, 1)
-
         bias = self.bias(w)
-        bias = bias.reshape(len(w),
-                            self.out_channels)
-
+        bias = bias.reshape(len(w), self.out_channels)
         return w_spatial, w_pointwise, bias

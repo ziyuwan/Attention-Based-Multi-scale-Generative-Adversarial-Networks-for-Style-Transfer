@@ -1,11 +1,11 @@
+import warnings
+
 import torch
 import torch.nn as nn
-import functools
 from torch.nn import init
 from torch.optim import lr_scheduler
-from torchvision.transforms import transforms
-import warnings
 from torchvision import models
+from torchvision.transforms import transforms
 
 
 def get_scheduler(optimizer, opt):
@@ -158,7 +158,7 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
         self.attn_adain_4_1 = AdaAttN(in_planes=in_planes, key_planes=key_planes)
         self.attn_adain_5_1 = AdaAttN(in_planes=in_planes,
-                                        key_planes=key_planes + 512 if shallow_layer else key_planes)
+                                      key_planes=key_planes + 512 if shallow_layer else key_planes)
         self.upsample5_1 = nn.Upsample(scale_factor=2, mode='nearest')
         self.merge_conv_pad = nn.ReflectionPad2d((1, 1, 1, 1))
         self.merge_conv = nn.Conv2d(in_planes, in_planes, (3, 3))
@@ -239,6 +239,7 @@ class VGGEncoder(nn.Module):
         self.block_names = block_names
         self.scale_factor = scale_factor
         self.out_channels = out_channels
+        self.freeze()  # Don't need to train
 
     def forward(self, xs):
         xs = self.normalize(xs)
@@ -254,6 +255,25 @@ class VGGEncoder(nn.Module):
         self.eval()
         for parameter in self.parameters():
             parameter.requires_grad = False
+
+
+class VGGNet(nn.Module):
+    def __init__(self, normalize=True):
+        super().__init__()
+
+        if normalize:
+            mean = [0.485, 0.456, 0.406]
+            std = [0.229, 0.224, 0.225]
+            self.normalize = transforms.Normalize(mean=mean, std=std)
+        else:
+            self.normalize = nn.Identity()
+
+        self.model = models.vgg19(pretrained=True)
+
+    def forward(self, xs):
+        xs = self.normalize(xs)
+        return self.model(xs)
+
 
 def extract_vgg_blocks(layers, layer_names):
     blocks, current_block, block_names = [], [], []

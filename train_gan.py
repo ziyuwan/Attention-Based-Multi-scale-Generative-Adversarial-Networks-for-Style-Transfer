@@ -1,9 +1,10 @@
 import time
 
 from data import create_dataset
-from models import create_model
+from models import create_model, create_dis_model
 from options.train_options import TrainOptions
 from util.visualizer import Visualizer
+from models.gan_model import GANModel
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()
@@ -12,20 +13,22 @@ if __name__ == '__main__':
     print('The number of training samples = %d' % dataset_size)
     model = create_model(opt)
     model.setup(opt)
+    dis_model = create_dis_model(opt)
+    dis_model.setup(opt)
+    gan = GANModel(model, dis_model)
     visualizer = Visualizer(opt)
     total_iters = 0
     total_batch_iters = 0
     for epoch in range(opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1):
         epoch_start_time = time.time()
         epoch_iter = 0
+        dis_model.freeze()
         for i, data in enumerate(dataset):
             iter_start_time = time.time()
             total_iters += opt.batch_size
             epoch_iter += opt.batch_size
             total_batch_iters += 1
-            model.set_input(data)
-            model.forward()
-            model.optimize_parameters()
+            gan.generate(data)
             if total_batch_iters % opt.display_freq == 0:
                 visuals = model.get_current_visuals()
                 losses = model.get_current_losses()
@@ -45,4 +48,27 @@ if __name__ == '__main__':
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
         model.update_learning_rate()
+        gan.use_dis = True
 
+        dis_model.unfreeze()
+        for i, data in enumerate(dataset):
+            iter_start_time = time.time()
+            total_iters += opt.batch_size
+            epoch_iter += opt.batch_size
+            total_batch_iters += 1
+            gan.discriminate(data)
+            if total_batch_iters % opt.display_freq == 0:
+                losses = dis_model.get_current_losses()
+                t_comp = (time.time() - iter_start_time) / opt.batch_size
+                visualizer.print_current_losses(epoch, epoch_iter, losses, t_comp)
+            if total_batch_iters % opt.save_latest_freq == 0:
+                print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
+                save_suffix = 'iter_%d_dis' % total_iters if opt.save_by_iter else 'latest'
+                dis_model.save_networks(save_suffix)
+        if epoch % opt.save_epoch_freq == 0:
+            print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
+            dis_model.save_networks('latest')
+            dis_model.save_networks(epoch)
+        print('End of epoch %d / %d \t Time Taken: %d sec' %
+              (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
+        dis_model.update_learning_rate()

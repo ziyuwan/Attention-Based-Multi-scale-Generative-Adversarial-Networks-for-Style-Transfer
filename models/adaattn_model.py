@@ -1,8 +1,10 @@
+import itertools
+
 import torch
 import torch.nn as nn
-import itertools
-from .base_model import BaseModel
+
 from . import networks
+from .base_model import BaseModel
 
 
 class AdaAttNModel(BaseModel):
@@ -95,7 +97,7 @@ class AdaAttNModel(BaseModel):
         self.max_sample = 64 * 64
         if opt.skip_connection_3:
             adaattn_3 = networks.AdaAttN(in_planes=256, key_planes=256 + 128 + 64 if opt.shallow_layer else 256,
-                                              max_sample=self.max_sample)
+                                         max_sample=self.max_sample)
             self.net_adaattn_3 = networks.init_net(adaattn_3, opt.init_type, opt.init_gain, opt.gpu_ids)
             self.model_names.append('adaattn_3')
             parameters.append(self.net_adaattn_3.parameters())
@@ -125,11 +127,6 @@ class AdaAttNModel(BaseModel):
             self.loss_local = torch.tensor(0., device=self.device)
             self.loss_content = torch.tensor(0., device=self.device)
 
-    def set_input(self, input_dict):
-        self.c = input_dict['c'].to(self.device)
-        self.s = input_dict['s'].to(self.device)
-        self.image_paths = input_dict['name']
-
     def encode_with_intermediate(self, input_img):
         results = [input_img]
         for i in range(5):
@@ -150,11 +147,13 @@ class AdaAttNModel(BaseModel):
             return networks.mean_variance_norm(feats[last_layer_idx])
 
     def forward(self):
+        self.seed = int(torch.randint(10000000, (1,))[0])
         self.c_feats = self.encode_with_intermediate(self.c)
         self.s_feats = self.encode_with_intermediate(self.s)
         if self.opt.skip_connection_3:
-            c_adain_feat_3 = self.net_adaattn_3(self.c_feats[2], self.s_feats[2], self.get_key(self.c_feats, 2, self.opt.shallow_layer),
-                                                   self.get_key(self.s_feats, 2, self.opt.shallow_layer), self.seed)
+            c_adain_feat_3 = self.net_adaattn_3(self.c_feats[2], self.s_feats[2],
+                                                self.get_key(self.c_feats, 2, self.opt.shallow_layer),
+                                                self.get_key(self.s_feats, 2, self.opt.shallow_layer), self.seed)
         else:
             c_adain_feat_3 = None
         cs = self.net_transformer(self.c_feats[3], self.s_feats[3], self.c_feats[4], self.s_feats[4],
@@ -206,7 +205,8 @@ class AdaAttNModel(BaseModel):
                 # mean, std: b, c, h, w
                 mean = mean.view(b, h_c, w_c, -1).permute(0, 3, 1, 2).contiguous()
                 std = std.view(b, h_c, w_c, -1).permute(0, 3, 1, 2).contiguous()
-                self.loss_local += self.criterionMSE(stylized_feats[i], std * networks.mean_variance_norm(self.c_feats[i]) + mean)
+                self.loss_local += self.criterionMSE(stylized_feats[i],
+                                                     std * networks.mean_variance_norm(self.c_feats[i]) + mean)
 
     def compute_losses(self):
         stylized_feats = self.encode_with_intermediate(self.cs)
@@ -215,13 +215,10 @@ class AdaAttNModel(BaseModel):
         self.loss_content = self.loss_content * self.opt.lambda_content
         self.loss_local = self.loss_local * self.opt.lambda_local
         self.loss_global = self.loss_global * self.opt.lambda_global
-        
+
     def optimize_parameters(self):
-        self.seed = int(torch.randint(10000000, (1,))[0])
-        self.forward()
         self.optimizer_g.zero_grad()
         self.compute_losses()
         loss = self.loss_content + self.loss_global + self.loss_local
         loss.backward()
         self.optimizer_g.step()
-

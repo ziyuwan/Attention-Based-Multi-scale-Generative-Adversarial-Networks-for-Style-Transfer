@@ -1,13 +1,14 @@
-from .base_model import BaseModel
-import torch
-from torch import nn
-import torch.nn.functional as F
-from . import networks
-from argparse import ArgumentParser
-from . import loss
-from torch.optim import Adam
-from torch.optim.lr_scheduler import LambdaLR
 import functools
+from argparse import ArgumentParser
+
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import Adam
+
+from . import loss
+from . import networks
+from .base_model import BaseModel
 
 
 class AdaInModel(BaseModel):
@@ -31,7 +32,7 @@ class AdaInModel(BaseModel):
         decoder = networks.Decoder()
         adain = AdaInstanceNorm2d()
         init_network = functools.partial(
-            networks.init_net, 
+            networks.init_net,
             init_type=opt.init_type, init_gain=opt.init_gain, gpu_ids=opt.gpu_ids
         )
         self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
@@ -48,9 +49,10 @@ class AdaInModel(BaseModel):
         self.s = None
         self.s_feats = None
         self.c_feats = None
+        self.loss_dis = 0
 
         if self.isTrain:
-            self.loss_names = ['content', 'style']
+            self.loss_names = ['content', 'style', 'dis']
             self.style_loss_cri = loss._get_style_loss(opt.style_loss)
             self.style_loss_weight = opt.style_weight
             self.content_loss_cri = loss._get_content_loss(opt.content_loss)
@@ -60,24 +62,17 @@ class AdaInModel(BaseModel):
 
             self.optimizer_g = Adam(
                 list(self.net_decoder.parameters()) \
-                    + list(self.net_adain.parameters()),
+                + list(self.net_adain.parameters()),
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
             self.loss_content = torch.tensor(0., device=self.device)
             self.loss_style = torch.tensor(0., device=self.device)
-
-    def set_input(self, input_dict):
-        self.c = input_dict['c'].to(self.device)
-        self.s = input_dict['s'].to(self.device)
-        self.image_paths = input_dict['name']
-
 
     def forward(self):
         self.content_embeddings, self.style_embeddings = self._encode(self.c, self.s)
         self.cs = self.net_decoder(self.content_embeddings[-1])
 
         self.output_embeddings = self.net_encoder(self.cs)
-        
 
     def _encode(self, content, style):
         content_embeddings = self.net_encoder(content)
@@ -91,24 +86,23 @@ class AdaInModel(BaseModel):
 
     def compute_losses(self):
         self.loss_content = self.content_loss_weight \
-            * self.content_loss_cri(self.content_embeddings[-1], 
-                                    self.output_embeddings[-1])
-        
+                            * self.content_loss_cri(self.content_embeddings[-1],
+                                                    self.output_embeddings[-1])
+
         self.loss_style = 0
-        for style_feats, output_feats in zip(self.style_embeddings, 
+        for style_feats, output_feats in zip(self.style_embeddings,
                                              self.output_embeddings):
             self.loss_style += self.style_loss_cri(style_feats, output_feats)
-        
+
         self.loss_style *= self.style_loss_weight
-    
+
     def optimize_parameters(self):
-        self.forward()
         self.optimizer_g.zero_grad()
         self.compute_losses()
-        loss = self.loss_content + self.loss_style
+        loss = self.loss_content + self.loss_style + self.loss_dis
         loss.backward()
         self.optimizer_g.step()
-    
+
 
 class AdaInstanceNorm2d(nn.Module):
     def __init__(self, mlp_features=None):

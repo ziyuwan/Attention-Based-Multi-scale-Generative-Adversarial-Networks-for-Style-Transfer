@@ -1,7 +1,9 @@
 import os
-import torch
-from collections import OrderedDict
 from abc import ABC, abstractmethod
+from collections import OrderedDict
+
+import torch
+
 from . import networks
 
 
@@ -32,7 +34,8 @@ class BaseModel(ABC):
         self.opt = opt
         self.gpu_ids = opt.gpu_ids
         self.isTrain = opt.isTrain
-        self.device = torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device('cpu')  # get device name: CPU or GPU
+        self.device = torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device(
+            'cpu')  # get device name: CPU or GPU
         self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)  # save all the checkpoints to save_dir
         if opt.preprocess != 'scale_width':  # with [scale_width], input images might have different sizes, which hurts the performance of cudnn.benchmark.
             torch.backends.cudnn.benchmark = True
@@ -56,14 +59,10 @@ class BaseModel(ABC):
         """
         return parser
 
-    @abstractmethod
-    def set_input(self, input):
-        """Unpack input data from the dataloader and perform necessary pre-processing steps.
-
-        Parameters:
-            input (dict): includes the data itself and its metadata information.
-        """
-        pass
+    def set_input(self, input_dict):
+        self.c = input_dict['c'].to(self.device)
+        self.s = input_dict['s'].to(self.device)
+        self.image_paths = input_dict['name']
 
     @abstractmethod
     def forward(self):
@@ -177,7 +176,7 @@ class BaseModel(ABC):
                 if getattr(module, key) is None:
                     state_dict.pop('.'.join(keys))
             if module.__class__.__name__.startswith('InstanceNorm') and \
-               (key == 'num_batches_tracked'):
+                    (key == 'num_batches_tracked'):
                 state_dict.pop('.'.join(keys))
         else:
             self.__patch_instance_norm_state_dict(state_dict, getattr(module, key), keys, i + 1)
