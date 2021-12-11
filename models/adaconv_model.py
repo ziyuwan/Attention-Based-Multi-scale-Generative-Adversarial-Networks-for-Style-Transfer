@@ -92,7 +92,6 @@ class AdaConvModel(BaseModel):
         output = self.net_decoder(content_embedding, style_embedding)
         return output
 
-
     def forward(self):
         self.content_embeddings, self.style_embeddings = self._encode(self.c, self.s)
         self.cs = self._decode(self.content_embeddings[-1], self.style_embeddings[-1])
@@ -109,11 +108,12 @@ class AdaConvModel(BaseModel):
             self.loss_style += self.style_loss_cri(style_feats, output_feats)
 
         self.loss_style *= self.style_loss_weight
+        return self.loss_content + self.loss_style
 
     def optimize_parameters(self):
         self.optimizer_g.zero_grad()
-        self.compute_losses()
-        loss = self.loss_content + self.loss_style
+        self.forward()
+        loss = self.compute_losses()
         loss.backward()
         self.optimizer_g.step()
 

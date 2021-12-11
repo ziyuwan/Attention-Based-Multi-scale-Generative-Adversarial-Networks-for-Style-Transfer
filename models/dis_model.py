@@ -40,11 +40,11 @@ class DisModel(BaseModel):
 
             self.lr = opt.lr_dis
 
-            self.optimizer_g = Adam(
+            self.optimizer_d = Adam(
                 list(self.net_encoder.parameters()) \
                 + list(self.net_decoder.parameters()),
                 lr=self.lr)
-            self.optimizers.append(self.optimizer_g)
+            self.optimizers.append(self.optimizer_d)
 
     def set_input(self, input_dict):
         self.s_true = input_dict['s_true']
@@ -71,13 +71,14 @@ class DisModel(BaseModel):
         labels = torch.ones_like(self.logits)
         labels[:, 1] = 0
         self.loss_dis = self.dis_loss_cri(self.logits, labels)
+        return self.loss_dis
 
     def optimize_parameters(self):
-        self.optimizer_g.zero_grad()
-        self.compute_losses()
-        loss = self.loss_dis
+        self.optimizer_d.zero_grad()
+        self.forward()
+        loss = self.compute_losses()
         loss.backward()
-        self.optimizer_g.step()
+        self.optimizer_d.step()
 
     def save_networks(self, epoch):
         super(DisModel, self).save_networks(epoch + '_dis')

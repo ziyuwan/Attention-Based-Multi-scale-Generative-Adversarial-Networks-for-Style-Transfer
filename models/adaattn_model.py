@@ -215,10 +215,11 @@ class AdaAttNModel(BaseModel):
         self.loss_content = self.loss_content * self.opt.lambda_content
         self.loss_local = self.loss_local * self.opt.lambda_local
         self.loss_global = self.loss_global * self.opt.lambda_global
+        return self.loss_content + self.loss_global + self.loss_local
 
     def optimize_parameters(self):
         self.optimizer_g.zero_grad()
-        self.compute_losses()
-        loss = self.loss_content + self.loss_global + self.loss_local
+        self.forward()
+        loss = self.compute_losses()
         loss.backward()
         self.optimizer_g.step()

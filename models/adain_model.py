@@ -49,10 +49,9 @@ class AdaInModel(BaseModel):
         self.s = None
         self.s_feats = None
         self.c_feats = None
-        self.loss_dis = 0
 
         if self.isTrain:
-            self.loss_names = ['content', 'style', 'dis']
+            self.loss_names = ['content', 'style']
             self.style_loss_cri = loss._get_style_loss(opt.style_loss)
             self.style_loss_weight = opt.style_weight
             self.content_loss_cri = loss._get_content_loss(opt.content_loss)
@@ -96,10 +95,12 @@ class AdaInModel(BaseModel):
 
         self.loss_style *= self.style_loss_weight
 
+        return self.loss_content + self.loss_style
+
     def optimize_parameters(self):
         self.optimizer_g.zero_grad()
-        self.compute_losses()
-        loss = self.loss_content + self.loss_style + self.loss_dis
+        self.forward()
+        loss = self.compute_losses()
         loss.backward()
         self.optimizer_g.step()
 

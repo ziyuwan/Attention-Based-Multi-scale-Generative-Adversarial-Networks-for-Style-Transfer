@@ -24,7 +24,6 @@ if __name__ == '__main__':
             epoch_iter += opt.batch_size
             total_batch_iters += 1
             model.set_input(data)
-            model.forward()
             model.optimize_parameters()
             if total_batch_iters % opt.display_freq == 0:
                 visuals = model.get_current_visuals()
