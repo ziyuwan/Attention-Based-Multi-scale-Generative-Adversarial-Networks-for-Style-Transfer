@@ -247,3 +247,17 @@ class BaseModel(ABC):
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
+    def freeze(self):
+        for name in self.model_names:
+            if isinstance(name, str):
+                net = getattr(self, 'net_' + name)
+                for param in net.parameters():
+                    param.requires_grad = False
+
+    def unfreeze(self):
+        for name in self.model_names:
+            if isinstance(name, str):
+                net = getattr(self, 'net_' + name)
+                for param in net.parameters():
+                    param.requires_grad = True

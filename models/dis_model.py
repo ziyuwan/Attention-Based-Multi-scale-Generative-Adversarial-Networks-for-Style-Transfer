@@ -29,7 +29,9 @@ class DisModel(BaseModel):
         )
 
         self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
-        self.embed_decoder = init_network(decoder)
+        self.net_decoder = init_network(decoder)
+
+        self.model_names = ['decoder', 'encoder']
 
         if self.isTrain:
             self.loss_names = ['dis']
@@ -40,7 +42,7 @@ class DisModel(BaseModel):
 
             self.optimizer_g = Adam(
                 list(self.net_encoder.parameters()) \
-                + list(self.embed_decoder.parameters()),
+                + list(self.net_decoder.parameters()),
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
 
@@ -54,14 +56,14 @@ class DisModel(BaseModel):
         embed_fake = self.net_encoder(self.s_fake)
         embed_super = self.net_encoder(self.s_super)
 
-        logits_true = self.embed_decoder(embed_super - embed_true)
-        logits_false = self.embed_decoder(embed_super - embed_fake)
+        logits_true = self.net_decoder(embed_super - embed_true)
+        logits_false = self.net_decoder(embed_super - embed_fake)
         self.logits = torch.cat([logits_true, logits_false], dim=-1)
 
     def forward_generate(self):
         embed_fake = self.net_encoder(self.s_fake)
         embed_super = self.net_encoder(self.s_super)
-        logits = self.embed_decoder(embed_super - embed_fake)
+        logits = self.net_decoder(embed_super - embed_fake)
         labels = torch.ones_like(logits)
         return self.dis_loss_weight * self.dis_loss_cri(logits, labels)
 
@@ -77,17 +79,11 @@ class DisModel(BaseModel):
         loss.backward()
         self.optimizer_g.step()
 
-    def freeze(self):
-        for parameter in self.net_encoder.parameters():
-            parameter.requires_grad = False
-        for parameter in self.embed_decoder.parameters():
-            parameter.requires_grad = False
+    def save_networks(self, epoch):
+        super(DisModel, self).save_networks(epoch + '_dis')
 
-    def unfreeze(self):
-        for parameter in self.net_encoder.parameters():
-            parameter.requires_grad = True
-        for parameter in self.embed_decoder.parameters():
-            parameter.requires_grad = True
+    def load_networks(self, epoch):
+        super(DisModel, self).load_networks(epoch + '_dis')
 
 
 class StyleDecoder(nn.Module):

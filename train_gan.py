@@ -1,21 +1,20 @@
 import time
 
 from data import create_dataset
-from models import create_model, create_dis_model
-from options.train_options import TrainOptions
-from util.visualizer import Visualizer
+from models import create_gan_model
 from models.gan_model import GANModel
+from options.gan_options import GANOptions
+from util.visualizer import Visualizer
 
 if __name__ == '__main__':
-    opt = TrainOptions().parse()
+    opt = GANOptions().parse()
     dataset = create_dataset(opt)
     dataset_size = len(dataset)
     print('The number of training samples = %d' % dataset_size)
-    model = create_model(opt)
-    model.setup(opt)
-    dis_model = create_dis_model(opt)
+    gen_model, dis_model = create_gan_model(opt)
+    gen_model.setup(opt)
     dis_model.setup(opt)
-    gan = GANModel(model, dis_model)
+    gan = GANModel(gen_model, dis_model)
     visualizer = Visualizer(opt)
     total_iters = 0
     total_batch_iters = 0
@@ -30,8 +29,8 @@ if __name__ == '__main__':
             total_batch_iters += 1
             gan.generate(data)
             if total_batch_iters % opt.display_freq == 0:
-                visuals = model.get_current_visuals()
-                losses = model.get_current_losses()
+                visuals = gen_model.get_current_visuals()
+                losses = gen_model.get_current_losses()
                 visualizer.display_current_results(visuals, epoch, total_iters % opt.update_html_freq == 0)
                 t_comp = (time.time() - iter_start_time) / opt.batch_size
                 visualizer.print_current_losses(epoch, epoch_iter, losses, t_comp)
@@ -40,14 +39,14 @@ if __name__ == '__main__':
             if total_batch_iters % opt.save_latest_freq == 0:
                 print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
                 save_suffix = 'iter_%d' % total_iters if opt.save_by_iter else 'latest'
-                model.save_networks(save_suffix)
+                gen_model.save_networks(save_suffix)
         if epoch % opt.save_epoch_freq == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
-            model.save_networks('latest')
-            model.save_networks(epoch)
+            gen_model.save_networks('latest')
+            gen_model.save_networks(epoch)
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
-        model.update_learning_rate()
+        gen_model.update_learning_rate()
         gan.use_dis = True
 
         dis_model.unfreeze()
@@ -63,7 +62,7 @@ if __name__ == '__main__':
                 visualizer.print_current_losses(epoch, epoch_iter, losses, t_comp)
             if total_batch_iters % opt.save_latest_freq == 0:
                 print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
-                save_suffix = 'iter_%d_dis' % total_iters if opt.save_by_iter else 'latest'
+                save_suffix = 'iter_%d' % total_iters if opt.save_by_iter else 'latest'
                 dis_model.save_networks(save_suffix)
         if epoch % opt.save_epoch_freq == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))

@@ -40,7 +40,7 @@ def find_model_using_name(model_name):
 
     if model is None:
         print("In %s.py, there should be a subclass of BaseModel with class name that matches %s in lowercase." % (
-        model_filename, target_model_name))
+            model_filename, target_model_name))
         exit(0)
 
     return model
@@ -68,8 +68,8 @@ def create_model(opt):
     return instance
 
 
-def create_dis_model(opt):
-    model = find_model_using_name('dis')
-    instance = model(opt)
-    print("model [%s] was created" % type(instance).__name__)
-    return instance
+def create_gan_model(opt):
+    gen_model = create_model(opt)
+    dis_model = find_model_using_name('dis')(opt)
+    print("model [%s] was created" % type(dis_model).__name__)
+    return gen_model, dis_model
