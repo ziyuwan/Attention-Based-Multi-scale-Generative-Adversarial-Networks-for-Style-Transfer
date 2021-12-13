@@ -15,4 +15,5 @@ python train_gan.py --content_path $DataPath/train2014_sub \
   --display_port 8098 \
   --display_env AdaIn \
   --lr 0.0001 \
-  --lr_dis 1e-4
+  --lr_dis 1e-4 \
+  --continue_train

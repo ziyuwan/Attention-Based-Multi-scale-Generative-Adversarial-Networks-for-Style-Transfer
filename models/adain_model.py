@@ -42,7 +42,7 @@ class AdaInModel(BaseModel):
         self.alpha = opt.alpha
 
         self.visual_names = ['c', 'cs', 's']
-        self.model_names = ['decoder', 'encoder', "adain"]
+        self.model_names = ['decoder', 'encoder', 'adain']
 
         self.c = None
         self.cs = None
@@ -96,6 +96,7 @@ class AdaInModel(BaseModel):
         self.loss_style *= self.style_loss_weight
 
         return self.loss_content + self.loss_style
+
 
     def optimize_parameters(self):
         self.optimizer_g.zero_grad()

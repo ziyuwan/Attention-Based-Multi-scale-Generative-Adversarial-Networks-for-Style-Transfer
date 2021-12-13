@@ -20,9 +20,9 @@ class GANModel():
         loss = self.gen.compute_losses()
         if self.use_dis:
             self.dis.set_input({'s_true': None, 's_fake': self.gen.cs, 's_super': data['s_super']})
-            dis_loss = self.dis.forward_generate()
-            self.gen.loss_dis = dis_loss
-            loss += dis_loss
+            loss_dis = self.dis.forward_generate()
+            self.gen.loss_dis = loss_dis
+            loss += loss_dis
         loss.backward()
         self.gen.optimizers[0].step()
 

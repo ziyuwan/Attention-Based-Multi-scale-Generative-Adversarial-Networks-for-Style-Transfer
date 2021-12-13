@@ -47,8 +47,8 @@ if __name__ == '__main__':
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
         gen_model.update_learning_rate()
-        gan.use_dis = True
 
+        gan.use_dis = True
         dis_model.unfreeze()
         for i, data in enumerate(dataset):
             iter_start_time = time.time()
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         if epoch % opt.save_epoch_freq == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
             dis_model.save_networks('latest')
-            dis_model.save_networks(epoch)
+            dis_model.save_networks(str(epoch))
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
         dis_model.update_learning_rate()

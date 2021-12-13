@@ -34,8 +34,8 @@ class AdaConvModel(BaseModel):
 
     def __init__(self, opt):
         super().__init__(opt)
+        self.alpha = 1.0
         encoder = networks.VGGEncoder()
-
         style_size, style_channels, kernel_size = opt.style_size, opt.style_channels, opt.kernel_size
         style_in_shape = (
             encoder.out_channels,
@@ -55,7 +55,6 @@ class AdaConvModel(BaseModel):
         self.net_encoder = nn.DataParallel(encoder, opt.gpu_ids)
         self.net_decoder = init_network(decoder)
         self.net_style_encoder = init_network(style_encoder)
-
         self.visual_names = ['c', 'cs', 's']
         self.model_names = ['encoder', 'style_encoder', 'decoder']
 
@@ -76,7 +75,7 @@ class AdaConvModel(BaseModel):
 
             self.optimizer_g = Adam(
                 list(self.net_decoder.parameters()) \
-                + list(self.net_style_encoder.parameters()),
+                + list(self.net_style_encoder.parameters()) ,
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
             self.loss_content = torch.tensor(0., device=self.device)

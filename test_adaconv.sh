@@ -3,6 +3,6 @@ python test.py --content_path datasets/contents \
 --name AdaConv_debug \
 --model adaconv \
 --dataset_mode unaligned \
---load_size 512 \
+--load_size 256 \
 --crop_size 256 \
 --gpu_ids 0

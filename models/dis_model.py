@@ -16,7 +16,7 @@ class DisModel(BaseModel):
         # AdaIn config
         if isTrain:
             # Losses
-            parser.add_argument('--dis_weight', type=float, default=1.0)
+            parser.add_argument('--dis_weight', type=float, default=10.0)
         return parser
 
     def __init__(self, opt):

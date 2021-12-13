@@ -256,6 +256,11 @@ class VGGEncoder(nn.Module):
         for parameter in self.parameters():
             parameter.requires_grad = False
 
+    def unfreeze(self):
+        self.eval()
+        for parameter in self.parameters():
+            parameter.requires_grad = True
+
 
 class VGGNet(nn.Module):
     def __init__(self, normalize=True):

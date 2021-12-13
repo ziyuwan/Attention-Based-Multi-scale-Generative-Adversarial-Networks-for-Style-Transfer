@@ -17,7 +17,7 @@ class AdaAttNModel(BaseModel):
         parser.add_argument('--shallow_layer', action='store_true',
                             help='if specified, also use features of shallow layers')
         if is_train:
-            parser.add_argument('--lambda_content', type=float, default=0., help='weight for L2 content loss')
+            parser.add_argument('--lambda_content', type=float, default=1., help='weight for L2 content loss')
             parser.add_argument('--lambda_global', type=float, default=10., help='weight for L2 style loss')
             parser.add_argument('--lambda_local', type=float, default=3.,
                                 help='weight for attention weighted style loss')
