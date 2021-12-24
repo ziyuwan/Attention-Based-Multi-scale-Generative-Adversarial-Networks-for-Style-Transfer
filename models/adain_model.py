@@ -89,14 +89,12 @@ class AdaInModel(BaseModel):
                                                     self.output_embeddings[-1])
 
         self.loss_style = 0
-        for style_feats, output_feats in zip(self.style_embeddings,
-                                             self.output_embeddings):
+        for style_feats, output_feats in zip(self.style_embeddings, self.output_embeddings):
             self.loss_style += self.style_loss_cri(style_feats, output_feats)
 
         self.loss_style *= self.style_loss_weight
 
         return self.loss_content + self.loss_style
-
 
     def optimize_parameters(self):
         self.optimizer_g.zero_grad()

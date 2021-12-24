@@ -75,7 +75,7 @@ class AdaConvModel(BaseModel):
 
             self.optimizer_g = Adam(
                 list(self.net_decoder.parameters()) \
-                + list(self.net_style_encoder.parameters()) ,
+                + list(self.net_style_encoder.parameters()),
                 lr=self.lr)
             self.optimizers.append(self.optimizer_g)
             self.loss_content = torch.tensor(0., device=self.device)
@@ -84,9 +84,9 @@ class AdaConvModel(BaseModel):
             from torch.optim.lr_scheduler import LambdaLR
             def lr_lambda(iter):
                 return 1 / (1 + 0.0002 * iter)
-            
+
             self.lr_scheduler = LambdaLR(self.optimizer_g, lr_lambda=lr_lambda)
-    
+
     def setup(self, opt):
         super().setup(opt)
         self.schedulers = []

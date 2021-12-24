@@ -263,7 +263,7 @@ class VGGEncoder(nn.Module):
 
 
 class VGGNet(nn.Module):
-    def __init__(self, normalize=True):
+    def __init__(self, normalize=True, model='vgg'):
         super().__init__()
 
         if normalize:
@@ -272,8 +272,10 @@ class VGGNet(nn.Module):
             self.normalize = transforms.Normalize(mean=mean, std=std)
         else:
             self.normalize = nn.Identity()
-
-        self.model = models.vgg19(pretrained=True)
+        if model == 'vgg':
+            self.model = models.vgg19(pretrained=True)
+        elif model == 'resnet':
+            self.model = models.resnet18(pretrained=True)
 
     def forward(self, xs):
         xs = self.normalize(xs)

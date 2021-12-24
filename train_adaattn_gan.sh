@@ -1,8 +1,7 @@
 DataPath=/NAS2020/Workspaces/MLGroup/chenxianyu/Dataset/AMSGAN
 python train_gan.py --content_path $DataPath/train2014_sub \
   --style_path $DataPath/wikiart/ \
-  --style_path datasets/styles \
-  --name AdaAttN_debug \
+  --name AdaAttN_debug_gan \
   --model adaattn \
   --dataset_mode style_group \
   --no_dropout \
@@ -21,4 +20,5 @@ python train_gan.py --content_path $DataPath/train2014_sub \
   --lambda_content 1 \
   --shallow_layer \
   --skip_connection_3 \
-  --lr_dis 1e-4
+  --lr_dis 5e-5 \
+  --continue

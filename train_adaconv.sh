@@ -7,12 +7,11 @@ python train.py --content_path $DataPath/train2014_sub \
   --no_dropout \
   --load_size 256 \
   --crop_size 256 \
-  --gpu_ids 1 \
+  --gpu_ids 2 \
   --batch_size 8 \
   --n_epochs 2 \
   --n_epochs_decay 3 \
   --display_freq 100 \
-  --display_port 8099 \
+  --display_port 8098 \
   --display_env AdaConv \
-  --lr 1e-4\
-  --lr_dis 1e-4
+  --lr 1e-4

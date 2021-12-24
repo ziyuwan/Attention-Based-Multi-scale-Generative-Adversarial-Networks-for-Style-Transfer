@@ -57,19 +57,25 @@ class DisModel(BaseModel):
         embed_super = self.net_encoder(self.s_super)
 
         logits_true = self.net_decoder(embed_super - embed_true)
+        logits_true_2 = self.net_decoder(embed_true - embed_super)
         logits_false = self.net_decoder(embed_super - embed_fake)
-        self.logits = torch.cat([logits_true, logits_false], dim=-1)
+        logits_false_2 = self.net_decoder(embed_true - embed_fake)
+        self.logits = torch.cat([logits_true, logits_true_2, logits_false, logits_false_2], dim=-1)
 
     def forward_generate(self):
+        embed_true = self.net_encoder(self.s_true)
         embed_fake = self.net_encoder(self.s_fake)
         embed_super = self.net_encoder(self.s_super)
-        logits = self.net_decoder(embed_super - embed_fake)
+        logits_1 = self.net_decoder(embed_true - embed_fake)
+        logits_2 = self.net_decoder(embed_super - embed_fake)
+        logits = torch.cat([logits_1, logits_2], dim=-1)
+
         labels = torch.ones_like(logits)
         return self.dis_loss_weight * self.dis_loss_cri(logits, labels)
 
     def compute_losses(self):
         labels = torch.ones_like(self.logits)
-        labels[:, 1] = 0
+        labels[:, 2:] = 0
         self.loss_dis = self.dis_loss_cri(self.logits, labels)
         return self.loss_dis
 
